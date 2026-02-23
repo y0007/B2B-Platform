@@ -1,11 +1,9 @@
 services:
   - type: web
     name: visual-sourcing
-    runtime: node
-    region: singapore  # Closest to India
+    runtime: docker
+    region: singapore
     plan: free
-    buildCommand: chmod +x render-build.sh && ./render-build.sh
-    startCommand: cd apps/backend && node src/index.js
     envVars:
       - key: NODE_ENV
         value: production
