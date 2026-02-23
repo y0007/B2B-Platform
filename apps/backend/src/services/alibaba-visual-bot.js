@@ -27,7 +27,7 @@ async function getBrowser() {
         fs.mkdirSync(PROFILE_DIR, { recursive: true });
     }
 
-    _browser = await puppeteer.launch({
+    const launchOptions = {
         headless: 'new', // Run invisibly in the background
         args: [
             '--no-sandbox',
@@ -41,7 +41,13 @@ async function getBrowser() {
         userDataDir: PROFILE_DIR,
         defaultViewport: { width: 1366, height: 900 },
         ignoreDefaultArgs: ['--enable-automation'],
-    });
+    };
+
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
+    _browser = await puppeteer.launch(launchOptions);
 
     _browser.on('disconnected', () => {
         console.log('[Bot] Browser disconnected.');
