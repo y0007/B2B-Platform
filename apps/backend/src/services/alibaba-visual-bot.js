@@ -137,65 +137,62 @@ async function searchByImage(imagePath) {
         // ================================================================
         // STEP 1: Navigate to Alibaba
         // ================================================================
-        console.log('[Bot] Navigating to alibaba.com...');
+        console.log('[Bot] [Step 1] Navigating to alibaba.com...');
         await page.goto('https://www.alibaba.com/', {
-            waitUntil: 'domcontentloaded', // Faster than networkidle2
-            timeout: 45000
+            waitUntil: 'domcontentloaded',
+            timeout: 60000
         });
+        console.log('[Bot] [Step 1] Page loaded.');
 
         // ================================================================
-        // STEP 2: Handle CAPTCHA and wait for load
+        // STEP 2: Handle CAPTCHA
         // ================================================================
-        await checkAndHandleCaptcha(page);
-
-        // Wait specifically for search bar instead of a fixed delay
-        await page.waitForSelector('input[name="SearchText"]', { timeout: 10000 }).catch(() => { });
+        console.log('[Bot] [Step 2] Checking for CAPTCHA...');
+        const captchaFound = await checkAndHandleCaptcha(page);
+        if (captchaFound) console.log('[Bot] [Step 2] CAPTCHA detected and handled.');
+        else console.log('[Bot] [Step 2] No CAPTCHA visible.');
 
         // ================================================================
         // STEP 3: Camera Icon & File Upload
         // ================================================================
-        console.log('[Bot] Step 3: Locating camera icon...');
+        console.log('[Bot] [Step 3] Locating camera icon on homepage...');
         let fileInput = await findFileInput(page);
 
         if (!fileInput) {
-            console.log('[Bot] No direct input found. Attemping camera click...');
-            for (let i = 0; i < 2; i++) {
-                const clicked = await clickCameraIcon(page);
-                if (clicked) {
-                    // Short wait for the upload modal/input to appear
-                    await page.waitForSelector('input[type="file"]', { timeout: 5000 }).catch(() => { });
-                    fileInput = await findFileInput(page);
-                    if (fileInput) break;
-                }
-                await humanDelay(1000, 2000);
+            console.log('[Bot] [Step 3] No direct input found. Attemping camera click...');
+            const clicked = await clickCameraIcon(page);
+            if (clicked) {
+                console.log('[Bot] [Step 3] Camera icon clicked. Waiting for file input...');
+                await page.waitForSelector('input[type="file"]', { timeout: 8000 }).catch(() => { });
+                fileInput = await findFileInput(page);
             }
         }
 
-        // FALLBACK: If still no file input, try the 'Trade Search' page
+        // FALLBACK: Deep Navigation if homepage fails
         if (!fileInput) {
-            console.log('[Bot] ⚠️ Still no upload icon. Navigating to layout with search bar...');
-            await page.goto('https://www.alibaba.com/trade/search?SearchText=image+search', {
+            console.log('[Bot] [Step 3] Homepage failed. Navigating to Deep Search...');
+            await page.goto('https://www.alibaba.com/trade/search?SearchText=jewelry&indexArea=product_en', {
                 waitUntil: 'domcontentloaded',
                 timeout: 30000
             });
             await checkAndHandleCaptcha(page);
-
-            for (let i = 0; i < 2; i++) {
-                const cameraClicked = await clickCameraIcon(page);
-                if (cameraClicked) {
-                    await page.waitForSelector('input[type="file"]', { timeout: 5000 }).catch(() => { });
-                    fileInput = await findFileInput(page);
-                    if (fileInput) break;
-                }
-                await humanDelay(1000, 2000);
+            console.log('[Bot] [Step 3] Searching for camera on search page...');
+            const cameraClicked = await clickCameraIcon(page);
+            if (cameraClicked) {
+                await page.waitForSelector('input[type="file"]', { timeout: 8000 }).catch(() => { });
+                fileInput = await findFileInput(page);
             }
         }
 
         if (!fileInput) {
-            const errPath = path.join(UPLOADS_DIR, 'bot-upload-fail.png');
+            console.log('[Bot] [Step 3] ERROR: Could not find any way to upload.');
+            const errPath = path.join(UPLOADS_DIR, `fail-${Date.now()}.png`);
             await page.screenshot({ path: errPath });
-            throw new Error('FAILED TO TRIGGER IMAGE UPLOAD. Check bot-upload-fail.png.');
+            console.log(`[Bot] Saved failure screenshot to: ${errPath}`);
+            throw new Error('Could not find upload button on Alibaba.');
         }
+
+        console.log('[Bot] [Step 3] SUCCESS: Found upload input.');
 
         // ================================================================
         // STEP 4: Upload the image
