@@ -162,33 +162,36 @@ async function searchByImage(imagePath) {
             console.log('[Bot] [Step 3] No direct input found. Attemping camera click...');
             const clicked = await clickCameraIcon(page);
             if (clicked) {
-                console.log('[Bot] [Step 3] Camera icon clicked. Waiting for file input...');
-                await page.waitForSelector('input[type="file"]', { timeout: 8000 }).catch(() => { });
+                console.log('[Bot] [Step 3] Camera icon clicked. Waiting 3s for dialog animations...');
+                await humanDelay(3000, 4000); // Wait for the "Upload" modal to actually slide in
                 fileInput = await findFileInput(page);
             }
         }
 
         // FALLBACK: Deep Navigation if homepage fails
         if (!fileInput) {
-            console.log('[Bot] [Step 3] Homepage failed. Navigating to Deep Search...');
-            await page.goto('https://www.alibaba.com/trade/search?SearchText=jewelry&indexArea=product_en', {
-                waitUntil: 'domcontentloaded',
-                timeout: 30000
-            });
-            await checkAndHandleCaptcha(page);
-            console.log('[Bot] [Step 3] Searching for camera on search page...');
-            const cameraClicked = await clickCameraIcon(page);
-            if (cameraClicked) {
-                await page.waitForSelector('input[type="file"]', { timeout: 8000 }).catch(() => { });
-                fileInput = await findFileInput(page);
+            console.log('[Bot] [Step 3] Homepage dialog failed to appear. Trying Deep Search page...');
+            try {
+                await page.goto('https://www.alibaba.com/trade/search?SearchText=jewelry', {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 90000 // INCREASED to 90s for slow cloud networks
+                });
+                await checkAndHandleCaptcha(page);
+                console.log('[Bot] [Step 3] Searching for camera on search page...');
+                const cameraClicked = await clickCameraIcon(page);
+                if (cameraClicked) {
+                    await humanDelay(3000, 4000);
+                    fileInput = await findFileInput(page);
+                }
+            } catch (navErr) {
+                console.log(`[Bot] [Step 3] Deep Navigation failed: ${navErr.message}`);
             }
         }
 
         if (!fileInput) {
-            console.log('[Bot] [Step 3] ERROR: Could not find any way to upload.');
-            const errPath = path.join(UPLOADS_DIR, `fail-${Date.now()}.png`);
+            console.log('[Bot] [Step 3] ERROR: Still could not find upload path.');
+            const errPath = path.join(UPLOADS_DIR, `fail-step3-${Date.now()}.png`);
             await page.screenshot({ path: errPath });
-            console.log(`[Bot] Saved failure screenshot to: ${errPath}`);
             throw new Error('Could not find upload button on Alibaba.');
         }
 
