@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: visual-sourcing
+    runtime: node
+    region: singapore  # Closest to India
+    plan: free
+    buildCommand: chmod +x render-build.sh && ./render-build.sh
+    startCommand: cd apps/backend && node src/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: USE_MOCK
+        value: "true"
+      - key: PORT
+        value: "4000"
+      - key: JWT_SECRET
+        value: super-secret-key-123
+      - key: GEMINI_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: RAPIDAPI_HOST
+        value: alibaba-datahub.p.rapidapi.com
+      - key: SCRAPERAPI_KEY
+        sync: false
+      - key: SERPAPI_API_KEY
+        sync: false
