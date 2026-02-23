@@ -37,6 +37,7 @@ async function getBrowser() {
             '--use-fake-ui-for-media-stream',
             '--use-fake-device-for-media-stream',
             '--disable-gpu',
+            '--disable-dev-shm-usage', // CRITICAL for Docker containers
         ],
         userDataDir: PROFILE_DIR,
         defaultViewport: { width: 1366, height: 900 },
@@ -44,6 +45,7 @@ async function getBrowser() {
     };
 
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        console.log(`[Bot] Using system Chromium: ${process.env.PUPPETEER_EXECUTABLE_PATH}`);
         launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     }
 
